@@ -1080,8 +1080,8 @@ RSpec.describe "Bundler.setup" do
     end
   end
 
-  describe "when Psych is not in the Gemfile", :ruby => "~> 2.2" do
-    it "does not load Psych" do
+  describe "with gemified standard libraries" do
+    it "does not load Psych", :ruby => "~> 2.2" do
       gemfile ""
       ruby <<-RUBY
         require 'bundler/setup'
@@ -1092,6 +1092,29 @@ RSpec.describe "Bundler.setup" do
       pre_bundler, post_bundler = out.split("\n")
       expect(pre_bundler).to eq("undefined")
       expect(post_bundler).to match(/\d+\.\d+\.\d+/)
+    end
+
+    it "does not load openssl" do
+      install_gemfile! ""
+      ruby! <<-RUBY
+        require "bundler/setup"
+        puts defined?(OpenSSL) ? "FAIL" : "WIN"
+        require "openssl"
+        puts defined?(OpenSSL) ? "WIN" : "FAIL"
+      RUBY
+      expect(out).to eq("WIN\nWIN")
+    end
+
+    it "does not activate any gems" do
+      pending "RubyGems activates io-console at the moment"
+
+      install_gemfile! ""
+
+      ruby! "require 'bundler/setup'; puts Gem.loaded_specs.keys"
+      activated_gems = out.split("\n")
+      activated_gems -= %w{bundler did_you_mean}
+
+      expect(activated_gems).to eq([])
     end
   end
 
